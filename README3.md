@@ -26,3 +26,4 @@ graph TD
     
     CheckResp -- Помилка --> ShowFail[Помилка конфігурації]
     ShowFail --> LogEvent
+
