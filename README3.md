@@ -1,3 +1,4 @@
+```mermaid
 graph TD
     Start((Початок)) --> Login[Авторизація Адміністратора]
     Login --> SelectRep[Вибір ретранслятора]
