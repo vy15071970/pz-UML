@@ -1,28 +1,35 @@
 sequenceDiagram
     autonumber
-    actor Op as Оператор
-    participant Sys as Веб-інтерфейс системи
-    participant Server as Backend
-    participant Broker as MQTT Брокер
+    participant R as Ретранслятор (DMR)
+    participant B as MQTT Брокер (IPSC)
+    participant S as Сервер АРМ
+    participant DB as База Даних
+    participant UI as Інтерфейс Оператора (Web)
+    actor Op as Черговий зв'язківець
 
-    Note over Broker, Server: Ретранслятор втратив живлення 220V
-    Broker->>Server: Status update: power battery
+    Note over R, B: Виникнення аварії (напр., зникло живлення)
+
+    R->>B: ПУБЛІКАЦІЯ alarm/repeater_01 (payload: critical_error)
+    activate B
+    B->>S: ПЕРЕДАЧА ПОВІДОМЛЕННЯ (subscriber)
+    deactivate B
     
-    activate Server
-    Server->>Server: Валідація даних
-    Server-->>Sys: WebSockets: Критичний статус!
-    deactivate Server
+    activate S
+    Note right of S: Парсинг даних,<br/>визначення типу аварії
+    S->>DB: Зберегти подію в лог
     
-    activate Sys
-    Sys->>Sys: Ввімкнути звуковий сигнал
-    Sys-->>Op: Візуальне попередження
-    deactivate Sys
+    S->>UI: НАДСИЛАННЯ СПОВІЩЕННЯ (Websocket/SSE)
+    activate UI
     
-    Op->>Sys: Натиснути Підтвердити аварію
-    activate Sys
-    Sys->>Server: Post ack repeater_id 1
-    activate Server
-    Server-->>Sys: HTTP 200 OK
-    deactivate Server
-    Sys-->>Op: Зупинка сигналу
-    deactivate Sys
+    UI->>Op: Відобразити червоне вікно та звуковий сигнал
+    activate Op
+    Note over Op: Бачить аварію
+    Op-->>UI: Натискає "Підтвердити" (Acknowledge)
+    deactivate Op
+    
+    UI->>S: POST /api/alarms/ack (ID_аварії)
+    deactivate UI
+    
+    S->>DB: Оновити статус аварії (підтверджено)
+    S-->>UI: OK
+    deactivate S
